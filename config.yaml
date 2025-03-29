@@ -1,4 +1,7 @@
 backends:
-  - "http://localhost:5001"
-  - "http://localhost:5002"
-  - "http://localhost:5003"
+  - url: "http://localhost:5001"
+    weight: 1
+  - url: "http://localhost:5002"
+    weight: 4
+  - url: "http://localhost:5003"
+    weight: 1

@@ -21,6 +21,10 @@ func AsyncVerifier() {
 	go startVerifier()
 }
 
+func IsNotBackendHealthy(url string) bool {
+	return !IsBackendHealthy(url)
+}
+
 func IsBackendHealthy(url string) bool {
 	return statusBackends[url]
 }
@@ -45,7 +49,7 @@ func verifyBackends() {
 		go func(url string) {
 			defer wg.Done()
 			results <- backendHealthy{url, isBackendHealthy(url)}
-		}(backend)
+		}(backend.URL)
 	}
 
 	go func() {

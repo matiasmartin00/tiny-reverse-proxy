@@ -9,8 +9,13 @@ import (
 
 var Config configuration
 
+type backend struct {
+	URL   string `yaml:"url"`
+	Weight int    `yaml:"weight"`
+}
+
 type configuration struct {
-	Backends []string `yaml:"backends"`
+	Backends []backend `yaml:"backends"`
 }
 
 func LoadConfig() {
