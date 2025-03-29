@@ -10,29 +10,31 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-var Config configuration
+var Config Configuration
 
-type logging struct {
+type Logging struct {
 	Level string `yaml:"level"`
 }
 
-type backend struct {
+type Backend struct {
 	URL        string `yaml:"url"`
 	HealthPath string `yaml:"health-path"`
 	Weight     int    `yaml:"weight"`
 }
 
-type loadbalancer struct {
+type LoadBalancer struct {
 	Strategy string `yaml:"strategy"`
 }
 
-type configuration struct {
-	Logging  logging      `yaml:"logging"`
-	Backends []backend    `yaml:"backends"`
-	LB       loadbalancer `yaml:"loadbalancer"`
+type Configuration struct {
+	Logging Logging              `yaml:"logging"`
+	Routes  map[string][]Backend `yaml:"routes"`
+	LB      LoadBalancer         `yaml:"loadbalancer"`
 }
 
 var mutex = &sync.Mutex{}
+
+var Backends = []Backend{}
 
 func LoadConfig() {
 	// Load configuration from file
@@ -50,14 +52,21 @@ func LoadConfig() {
 	defer mutex.Unlock()
 
 	decoder := yaml.NewDecoder(file)
-	Config = configuration{}
+	Config = Configuration{}
 
 	err = decoder.Decode(&Config)
 	if err != nil {
 		log.Fatalf("Error decoding configuration file: %v", err)
 	}
 
+	loadBackends()
 	log.Println("Configuration loaded")
+}
+
+func loadBackends() {
+	for _, backends := range Config.Routes {
+		Backends = append(Backends, backends...)
+	}
 }
 
 func WatchConfig() {
@@ -92,4 +101,17 @@ func WatchConfig() {
 			log.Println("Error:", err)
 		}
 	}
+}
+
+func GetBackendsForPath(path string) []Backend {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	for route, backends := range Config.Routes {
+		if len(path) >= len(route) && path[:len(route)] == route {
+			return backends
+		}
+	}
+
+	return []Backend{}
 }

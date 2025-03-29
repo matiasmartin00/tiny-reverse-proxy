@@ -8,12 +8,6 @@ import (
 
 var backendConnections = make(map[string]int)
 
-func InitConnections() {
-	for _, backend := range config.Config.Backends {
-		backendConnections[backend.URL] = 0
-	}
-}
-
 func IncrementConnection(backend string) {
 	backendConnections[backend]++
 }
@@ -22,14 +16,18 @@ func DecrementConnection(backend string) {
 	backendConnections[backend]--
 }
 
-func getLeastConnectionsBackend() string {
+func getLeastConnectionsBackend(backends []config.Backend) string {
 	logger.Debug("Least Connections Load Balancer")
 	minConnections := int(^uint(0) >> 1)
 	var minConnectionsBackend string
 
-	for _, backend := range config.Config.Backends {
+	for _, backend := range backends {
 		if healthcheck.IsNotBackendHealthy(backend.URL) {
 			continue
+		}
+
+		if _, ok := backendConnections[backend.URL]; !ok {
+			backendConnections[backend.URL] = 0
 		}
 
 		if backendConnections[backend.URL] < minConnections {

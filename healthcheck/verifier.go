@@ -42,9 +42,9 @@ func verifyBackends() {
 	logger.Debug("Verifying backends")
 
 	var wg sync.WaitGroup
-	results := make(chan backendHealthy, len(config.Config.Backends))
+	results := make(chan backendHealthy, len(config.Backends))
 
-	for _, backend := range config.Config.Backends {
+	for _, backend := range config.Backends {
 		wg.Add(1)
 		go func(url string, healthPath string) {
 			defer wg.Done()

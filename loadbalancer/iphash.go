@@ -8,11 +8,11 @@ import (
 	"github.com/matiasmartin00/tiny-reverse-proxy/logger"
 )
 
-func getIPHashBackend(clientIP string) string {
+func getIPHashBackend(clientIP string, backends []config.Backend) string {
 	logger.Debug("IP Hash Load Balancer")
 	activeServers := []string{}
 
-	for _, backend := range config.Config.Backends {
+	for _, backend := range backends {
 		if healthcheck.IsNotBackendHealthy(backend.URL) {
 			continue
 		}
