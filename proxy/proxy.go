@@ -5,10 +5,9 @@ import (
 	"net/http/httputil"
 	"net/url"
 
+	"github.com/matiasmartin00/tiny-reverse-proxy/config"
 	"github.com/matiasmartin00/tiny-reverse-proxy/loadbalancer"
 )
-
-var strategy = "round_robin"
 
 func ReverseProxyHandler(w http.ResponseWriter, r *http.Request) {
 	target := getTarget(r)
@@ -32,7 +31,7 @@ func ReverseProxyHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func getTarget(r *http.Request) string {
-	switch strategy {
+	switch config.Config.LB.Strategy {
 	case "round_robin":
 		return loadbalancer.GetNextRoundRobinBackend()
 	case "weighted":

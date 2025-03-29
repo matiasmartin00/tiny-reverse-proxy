@@ -11,6 +11,7 @@ import (
 
 func main() {
 	config.LoadConfig()
+	go config.WatchConfig()
 	healthcheck.AsyncVerifier()
 	loadbalancer.InitConnections()
 	log.Println("Starting server on :8080")
