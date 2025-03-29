@@ -3,12 +3,14 @@ package loadbalancer
 import (
 	"github.com/matiasmartin00/tiny-reverse-proxy/config"
 	"github.com/matiasmartin00/tiny-reverse-proxy/healthcheck"
+	"github.com/matiasmartin00/tiny-reverse-proxy/logger"
 )
 
 var current uint64
 
 // RoundRobin algorithm will return the next available backend in the list
-func GetNextRoundRobinBackend() string {
+func getNextRoundRobinBackend() string {
+	logger.Debug("Round Robin Load Balancer")
 	activeServers := make([]string, 0, len(config.Config.Backends))
 
 	for _, backend := range config.Config.Backends {
@@ -27,7 +29,8 @@ func GetNextRoundRobinBackend() string {
 }
 
 // Weighted Round Robin will return the next available backend in the list based on the weight
-func GetWeightedBackend() string {
+func getWeightedBackend() string {
+	logger.Debug("Weighted Load Balancer")
 	weightedList := []string{}
 
 	for _, backend := range config.Config.Backends {

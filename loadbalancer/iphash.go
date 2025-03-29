@@ -5,9 +5,11 @@ import (
 
 	"github.com/matiasmartin00/tiny-reverse-proxy/config"
 	"github.com/matiasmartin00/tiny-reverse-proxy/healthcheck"
+	"github.com/matiasmartin00/tiny-reverse-proxy/logger"
 )
 
-func GetIPHashBackend(clientIP string) string {
+func getIPHashBackend(clientIP string) string {
+	logger.Debug("IP Hash Load Balancer")
 	activeServers := []string{}
 
 	for _, backend := range config.Config.Backends {

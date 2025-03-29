@@ -3,6 +3,7 @@ package loadbalancer
 import (
 	"github.com/matiasmartin00/tiny-reverse-proxy/config"
 	"github.com/matiasmartin00/tiny-reverse-proxy/healthcheck"
+	"github.com/matiasmartin00/tiny-reverse-proxy/logger"
 )
 
 var backendConnections = make(map[string]int)
@@ -21,7 +22,8 @@ func DecrementConnection(backend string) {
 	backendConnections[backend]--
 }
 
-func GetLeastConnectionsBackend() string {
+func getLeastConnectionsBackend() string {
+	logger.Debug("Least Connections Load Balancer")
 	minConnections := int(^uint(0) >> 1)
 	var minConnectionsBackend string
 

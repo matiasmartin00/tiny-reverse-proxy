@@ -5,42 +5,33 @@ import (
 	"net/http/httputil"
 	"net/url"
 
-	"github.com/matiasmartin00/tiny-reverse-proxy/config"
 	"github.com/matiasmartin00/tiny-reverse-proxy/loadbalancer"
+	"github.com/matiasmartin00/tiny-reverse-proxy/logger"
 )
 
 func ReverseProxyHandler(w http.ResponseWriter, r *http.Request) {
-	target := getTarget(r)
+	target := loadbalancer.GetNextBackend(r)
 
 	if target == "" {
+		logger.Error("Not available backends")
 		http.Error(w, "Service Unavailable", http.StatusServiceUnavailable)
 		return
 	}
+
+	logger.Debug("Proxying request to: ", target)
 
 	loadbalancer.IncrementConnection(target)
 	defer loadbalancer.DecrementConnection(target)
 
 	targetURL, err := url.Parse(target)
 	if err != nil {
+		logger.Error("Error parsing target URL: ", err)
 		http.Error(w, "Bad Gateway", http.StatusBadGateway)
 		return
 	}
 
 	proxy := httputil.NewSingleHostReverseProxy(targetURL)
 	proxy.ServeHTTP(w, r)
-}
 
-func getTarget(r *http.Request) string {
-	switch config.Config.LB.Strategy {
-	case "round_robin":
-		return loadbalancer.GetNextRoundRobinBackend()
-	case "weighted":
-		return loadbalancer.GetWeightedBackend()
-	case "least_connections":
-		return loadbalancer.GetLeastConnectionsBackend()
-	case "ip_hash":
-		return loadbalancer.GetIPHashBackend(r.RemoteAddr)
-	default:
-		return loadbalancer.GetNextRoundRobinBackend()
-	}
+	logger.Debug("Request proxied successfully. Target: ", target)
 }

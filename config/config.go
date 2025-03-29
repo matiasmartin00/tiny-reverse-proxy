@@ -12,6 +12,10 @@ import (
 
 var Config configuration
 
+type logging struct {
+	Level string `yaml:"level"`
+}
+
 type backend struct {
 	URL        string `yaml:"url"`
 	HealthPath string `yaml:"health-path"`
@@ -23,6 +27,7 @@ type loadbalancer struct {
 }
 
 type configuration struct {
+	Logging  logging      `yaml:"logging"`
 	Backends []backend    `yaml:"backends"`
 	LB       loadbalancer `yaml:"loadbalancer"`
 }

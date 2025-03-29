@@ -1,3 +1,6 @@
+logging:
+  level: "DEBUG"
+
 backends:
   - url: "http://localhost:5001"
     health-path: "/ping"

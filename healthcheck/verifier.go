@@ -2,12 +2,12 @@ package healthcheck
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"sync"
 	"time"
 
 	"github.com/matiasmartin00/tiny-reverse-proxy/config"
+	"github.com/matiasmartin00/tiny-reverse-proxy/logger"
 )
 
 type backendHealthy struct {
@@ -39,7 +39,7 @@ func startVerifier() {
 }
 
 func verifyBackends() {
-	log.Println("Verifying backends")
+	logger.Debug("Verifying backends")
 
 	var wg sync.WaitGroup
 	results := make(chan backendHealthy, len(config.Config.Backends))
@@ -61,16 +61,23 @@ func verifyBackends() {
 		statusBackends[res.url] = res.healthy
 	}
 
-	log.Println("Backends verified")
+	logger.Debug("Backends verified")
 }
 
 func isBackendHealthy(url string, healthPath string) bool {
 	client := http.Client{
 		Timeout: 1 * time.Second,
 	}
-	resp, err := client.Get(fmt.Sprintf("%s%s", url, healthPath))
+	requestURL := fmt.Sprintf("%s%s", url, healthPath)
+
+	logger.Debug("Checking health of ", requestURL)
+
+	resp, err := client.Get(requestURL)
 	if err != nil || resp.StatusCode != http.StatusOK {
+		logger.Debug("Backend is not healthy: ", url)
 		return false
 	}
+
+	logger.Debug("Backend is healthy: ", url)
 	return true
 }
