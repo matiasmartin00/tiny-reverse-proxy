@@ -1,9 +1,12 @@
 backends:
   - url: "http://localhost:5001"
+    health-path: "/ping"
     weight: 1
   - url: "http://localhost:5002"
+    health-path: "/ping"
     weight: 4
   - url: "http://localhost:5003"
+    health-path: "/ping"
     weight: 1
 
 loadbalancer:

@@ -46,10 +46,10 @@ func verifyBackends() {
 
 	for _, backend := range config.Config.Backends {
 		wg.Add(1)
-		go func(url string) {
+		go func(url string, healthPath string) {
 			defer wg.Done()
-			results <- backendHealthy{url, isBackendHealthy(url)}
-		}(backend.URL)
+			results <- backendHealthy{url, isBackendHealthy(url, healthPath)}
+		}(backend.URL, backend.HealthPath)
 	}
 
 	go func() {
@@ -64,11 +64,11 @@ func verifyBackends() {
 	log.Println("Backends verified")
 }
 
-func isBackendHealthy(url string) bool {
+func isBackendHealthy(url string, healthPath string) bool {
 	client := http.Client{
 		Timeout: 1 * time.Second,
 	}
-	resp, err := client.Get(fmt.Sprintf("%s/ping", url))
+	resp, err := client.Get(fmt.Sprintf("%s%s", url, healthPath))
 	if err != nil || resp.StatusCode != http.StatusOK {
 		return false
 	}

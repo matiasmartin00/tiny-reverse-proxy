@@ -13,8 +13,9 @@ import (
 var Config configuration
 
 type backend struct {
-	URL    string `yaml:"url"`
-	Weight int    `yaml:"weight"`
+	URL        string `yaml:"url"`
+	HealthPath string `yaml:"health-path"`
+	Weight     int    `yaml:"weight"`
 }
 
 type loadbalancer struct {
