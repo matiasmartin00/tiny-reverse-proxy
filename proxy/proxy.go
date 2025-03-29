@@ -10,6 +10,11 @@ import (
 
 func ReverseProxyHandler(w http.ResponseWriter, r *http.Request) {
 	target := loadbalancer.NextBackend()
+	if target == "" {
+		http.Error(w, "Service Unavailable", http.StatusServiceUnavailable)
+		return
+	}
+
 	targetURL, err := url.Parse(target)
 	if err != nil {
 		http.Error(w, "Bad Gateway", http.StatusBadGateway)
