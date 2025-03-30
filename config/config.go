@@ -166,14 +166,18 @@ func (c *configuration) watchConfig() {
 	}
 }
 
-func GetConfig() Config {
+func New() Config {
 	once.Do(func() {
 		instance = &configuration{
-			file:     "config.yaml",
-			mutex:    &sync.Mutex{},
+			file:  "config.yaml",
+			mutex: &sync.Mutex{},
 		}
 		instance.loadConfig()
 		go instance.watchConfig()
 	})
+	return instance
+}
+
+func GetConfig() Config {
 	return instance
 }

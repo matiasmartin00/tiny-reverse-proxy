@@ -10,6 +10,6 @@ import (
 
 func Server() {
 	http.HandleFunc("/", proxy.ReverseProxyHandler)
-	logger.Info("Listening on :8080")
+	logger.GetLogger().Info("Listening on :8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }

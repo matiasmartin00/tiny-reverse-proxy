@@ -17,12 +17,12 @@ func DecrementConnection(backend string) {
 }
 
 func getLeastConnectionsBackend(backends []config.Backend) string {
-	logger.Debug("Least Connections Load Balancer")
+	logger.GetLogger().Debug("Least Connections Load Balancer")
 	minConnections := int(^uint(0) >> 1)
 	var minConnectionsBackend string
 
 	for _, backend := range backends {
-		if healthcheck.IsNotBackendHealthy(backend.GetURL()) {
+		if healthcheck.GetVerifier().IsNotBackendHealthy(backend.GetURL()) {
 			continue
 		}
 

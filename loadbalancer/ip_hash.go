@@ -9,11 +9,11 @@ import (
 )
 
 func getIPHashBackend(clientIP string, backends []config.Backend) string {
-	logger.Debug("IP Hash Load Balancer")
+	logger.GetLogger().Debug("IP Hash Load Balancer")
 	activeServers := []string{}
 
 	for _, backend := range backends {
-		if healthcheck.IsNotBackendHealthy(backend.GetURL()) {
+		if healthcheck.GetVerifier().IsNotBackendHealthy(backend.GetURL()) {
 			continue
 		}
 		activeServers = append(activeServers, backend.GetURL())

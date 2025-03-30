@@ -15,31 +15,41 @@ type backendHealthy struct {
 	healthy bool
 }
 
-var statusBackends = make(map[string]bool)
+var once sync.Once
+var instance Verifier
 
-func AsyncVerifier() {
-	go startVerifier()
+type Verifier interface {
+	IsNotBackendHealthy(url string) bool
+	IsBackendHealthy(url string) bool
+	startVerifier()
+	verifyBackends()
+	isBackendHealthy(url string, healthPath string) bool
 }
 
-func IsNotBackendHealthy(url string) bool {
-	return !IsBackendHealthy(url)
+type verifier struct {
+	config         config.Config
+	statusBackends map[string]bool
 }
 
-func IsBackendHealthy(url string) bool {
-	return statusBackends[url]
+func (v *verifier) IsNotBackendHealthy(url string) bool {
+	return !v.IsBackendHealthy(url)
 }
 
-func startVerifier() {
+func (v *verifier) IsBackendHealthy(url string) bool {
+	return v.statusBackends[url]
+}
+
+func (v *verifier) startVerifier() {
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 
 	for range ticker.C {
-		verifyBackends()
+		v.verifyBackends()
 	}
 }
 
-func verifyBackends() {
-	logger.Debug("Verifying backends")
+func (v *verifier) verifyBackends() {
+	logger.GetLogger().Debug("Verifying backends")
 
 	var wg sync.WaitGroup
 	results := make(chan backendHealthy, len(config.GetConfig().GetAllBackends()))
@@ -48,7 +58,7 @@ func verifyBackends() {
 		wg.Add(1)
 		go func(url string, healthPath string) {
 			defer wg.Done()
-			results <- backendHealthy{url, isBackendHealthy(url, healthPath)}
+			results <- backendHealthy{url, v.isBackendHealthy(url, healthPath)}
 		}(backend.GetURL(), backend.GetHealthPath())
 	}
 
@@ -58,26 +68,42 @@ func verifyBackends() {
 	}()
 
 	for res := range results {
-		statusBackends[res.url] = res.healthy
+		v.statusBackends[res.url] = res.healthy
 	}
 
-	logger.Debug("Backends verified")
+	logger.GetLogger().Debug("Backends verified")
 }
 
-func isBackendHealthy(url string, healthPath string) bool {
+func (v *verifier) isBackendHealthy(url string, healthPath string) bool {
 	client := http.Client{
 		Timeout: 1 * time.Second,
 	}
 	requestURL := fmt.Sprintf("%s%s", url, healthPath)
 
-	logger.Debug("Checking health of ", requestURL)
+	logger.GetLogger().Debug("Checking health of ", requestURL)
 
 	resp, err := client.Get(requestURL)
 	if err != nil || resp.StatusCode != http.StatusOK {
-		logger.Debug("Backend is not healthy: ", url)
+		logger.GetLogger().Debug("Backend is not healthy: ", url)
 		return false
 	}
 
-	logger.Debug("Backend is healthy: ", url)
+	logger.GetLogger().Debug("Backend is healthy: ", url)
 	return true
+}
+
+func NewVerifier(cfg config.Config) Verifier {
+	once.Do(func() {
+		instance = &verifier{
+			config:         cfg,
+			statusBackends: make(map[string]bool),
+		}
+		go instance.startVerifier()
+		logger.GetLogger().Debug("Verifier initialized")
+	})
+	return instance
+}
+
+func GetVerifier() Verifier {
+	return instance
 }

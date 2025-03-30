@@ -10,11 +10,11 @@ var current uint64
 
 // RoundRobin algorithm will return the next available backend in the list
 func getNextRoundRobinBackend(backends []config.Backend) string {
-	logger.Debug("Round Robin Load Balancer")
+	logger.GetLogger().Debug("Round Robin Load Balancer")
 	activeServers := make([]string, 0, len(backends))
 
 	for _, backend := range backends {
-		if healthcheck.IsNotBackendHealthy(backend.GetURL()) {
+		if healthcheck.GetVerifier().IsNotBackendHealthy(backend.GetURL()) {
 			continue
 		}
 		activeServers = append(activeServers, backend.GetURL())
@@ -30,11 +30,11 @@ func getNextRoundRobinBackend(backends []config.Backend) string {
 
 // Weighted Round Robin will return the next available backend in the list based on the weight
 func getWeightedBackend(backends []config.Backend) string {
-	logger.Debug("Weighted Load Balancer")
+	logger.GetLogger().Debug("Weighted Load Balancer")
 	weightedList := []string{}
 
 	for _, backend := range backends {
-		if healthcheck.IsNotBackendHealthy(backend.GetURL()) {
+		if healthcheck.GetVerifier().IsNotBackendHealthy(backend.GetURL()) {
 			continue
 		}
 
