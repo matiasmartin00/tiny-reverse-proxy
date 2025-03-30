@@ -6,35 +6,51 @@ import (
 	"github.com/matiasmartin00/tiny-reverse-proxy/logger"
 )
 
-var backendConnections = make(map[string]int)
-
-func IncrementConnection(backend string) {
-	backendConnections[backend]++
+type LeastConnections interface {
+	GetLeastConnectionsBackend(backends []config.Backend) string
+	IncrementConnection(backend string)
+	DecrementConnection(backend string)
 }
 
-func DecrementConnection(backend string) {
-	backendConnections[backend]--
+type leastConnectionsImpl struct {
+	backendConnections map[string]int
+	verifier           healthcheck.Verifier
 }
 
-func getLeastConnectionsBackend(backends []config.Backend) string {
+func (lc *leastConnectionsImpl) IncrementConnection(backend string) {
+	lc.backendConnections[backend]++
+}
+
+func (lc *leastConnectionsImpl) DecrementConnection(backend string) {
+	lc.backendConnections[backend]--
+}
+
+func (lc *leastConnectionsImpl) GetLeastConnectionsBackend(backends []config.Backend) string {
 	logger.GetLogger().Debug("Least Connections Load Balancer")
 	minConnections := int(^uint(0) >> 1)
 	var minConnectionsBackend string
 
 	for _, backend := range backends {
-		if healthcheck.GetVerifier().IsNotBackendHealthy(backend.GetURL()) {
+		if lc.verifier.IsNotBackendHealthy(backend.GetURL()) {
 			continue
 		}
 
-		if _, ok := backendConnections[backend.GetURL()]; !ok {
-			backendConnections[backend.GetURL()] = 0
+		if _, ok := lc.backendConnections[backend.GetURL()]; !ok {
+			lc.backendConnections[backend.GetURL()] = 0
 		}
 
-		if backendConnections[backend.GetURL()] < minConnections {
-			minConnections = backendConnections[backend.GetURL()]
+		if lc.backendConnections[backend.GetURL()] < minConnections {
+			minConnections = lc.backendConnections[backend.GetURL()]
 			minConnectionsBackend = backend.GetURL()
 		}
 	}
 
 	return minConnectionsBackend
+}
+
+func newLeastConnections(verifier healthcheck.Verifier) LeastConnections {
+	return &leastConnectionsImpl{
+		backendConnections: make(map[string]int),
+		verifier:           verifier,
+	}
 }

@@ -10,7 +10,7 @@ import (
 )
 
 func ReverseProxyHandler(w http.ResponseWriter, r *http.Request) {
-	target := loadbalancer.GetNextBackend(r)
+	target := loadbalancer.GetLoadBalancer().GetNextBackend(r)
 
 	if target == "" {
 		logger.GetLogger().Error("Not available backends")
@@ -20,8 +20,8 @@ func ReverseProxyHandler(w http.ResponseWriter, r *http.Request) {
 
 	logger.GetLogger().Debug("Proxying request to: ", target)
 
-	loadbalancer.IncrementConnection(target)
-	defer loadbalancer.DecrementConnection(target)
+	loadbalancer.GetLoadBalancer().IncrementConnection(target)
+	defer loadbalancer.GetLoadBalancer().DecrementConnection(target)
 
 	targetURL, err := url.Parse(target)
 	if err != nil {

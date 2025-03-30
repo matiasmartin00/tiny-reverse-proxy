@@ -6,15 +6,23 @@ import (
 	"github.com/matiasmartin00/tiny-reverse-proxy/logger"
 )
 
-var current uint64
+type RoundRobin interface {
+	GetNextRoundRobinBackend(backends []config.Backend) string
+	GetWeightedBackend(backends []config.Backend) string
+}
+
+type roundRobinImpl struct {
+	verifier healthcheck.Verifier
+	current  uint64
+}
 
 // RoundRobin algorithm will return the next available backend in the list
-func getNextRoundRobinBackend(backends []config.Backend) string {
+func (rb *roundRobinImpl) GetNextRoundRobinBackend(backends []config.Backend) string {
 	logger.GetLogger().Debug("Round Robin Load Balancer")
 	activeServers := make([]string, 0, len(backends))
 
 	for _, backend := range backends {
-		if healthcheck.GetVerifier().IsNotBackendHealthy(backend.GetURL()) {
+		if rb.verifier.IsNotBackendHealthy(backend.GetURL()) {
 			continue
 		}
 		activeServers = append(activeServers, backend.GetURL())
@@ -24,17 +32,17 @@ func getNextRoundRobinBackend(backends []config.Backend) string {
 		return ""
 	}
 
-	current = (current + 1) % uint64(len(activeServers))
-	return activeServers[current]
+	rb.current = (rb.current + 1) % uint64(len(activeServers))
+	return activeServers[rb.current]
 }
 
 // Weighted Round Robin will return the next available backend in the list based on the weight
-func getWeightedBackend(backends []config.Backend) string {
+func (rb *roundRobinImpl) GetWeightedBackend(backends []config.Backend) string {
 	logger.GetLogger().Debug("Weighted Load Balancer")
 	weightedList := []string{}
 
 	for _, backend := range backends {
-		if healthcheck.GetVerifier().IsNotBackendHealthy(backend.GetURL()) {
+		if rb.verifier.IsNotBackendHealthy(backend.GetURL()) {
 			continue
 		}
 
@@ -47,6 +55,13 @@ func getWeightedBackend(backends []config.Backend) string {
 		return ""
 	}
 
-	current = (current + 1) % uint64(len(weightedList))
-	return weightedList[current]
+	rb.current = (rb.current + 1) % uint64(len(weightedList))
+	return weightedList[rb.current]
+}
+
+func newRoundRobin(verifier healthcheck.Verifier) RoundRobin {
+	return &roundRobinImpl{
+		verifier: verifier,
+		current:  0,
+	}
 }
