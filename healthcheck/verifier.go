@@ -23,7 +23,7 @@ type Verifier interface {
 	IsBackendHealthy(url string) bool
 	startVerifier()
 	verifyBackends()
-	isBackendHealthy(url string, healthPath string) bool
+	isBackendHealthy(backend config.Backend) bool
 }
 
 type verifier struct {
@@ -56,10 +56,10 @@ func (v *verifier) verifyBackends() {
 
 	for _, backend := range config.GetConfig().GetAllBackends() {
 		wg.Add(1)
-		go func(url string, healthPath string) {
+		go func(backend config.Backend) {
 			defer wg.Done()
-			results <- backendHealthy{url, v.isBackendHealthy(url, healthPath)}
-		}(backend.GetURL(), backend.GetHealthPath())
+			results <- backendHealthy{backend.GetURL(), v.isBackendHealthy(backend)}
+		}(backend)
 	}
 
 	go func() {
@@ -74,21 +74,21 @@ func (v *verifier) verifyBackends() {
 	logger.GetLogger().Debug("Backends verified")
 }
 
-func (v *verifier) isBackendHealthy(url string, healthPath string) bool {
+func (v *verifier) isBackendHealthy(backend config.Backend) bool {
 	client := http.Client{
-		Timeout: 1 * time.Second,
+		Timeout: backend.GetHealthTimeout(),
 	}
-	requestURL := fmt.Sprintf("%s%s", url, healthPath)
+	requestURL := fmt.Sprintf("%s%s", backend.GetURL(), backend.GetHealthPath())
 
 	logger.GetLogger().Debug("Checking health of ", requestURL)
 
 	resp, err := client.Get(requestURL)
 	if err != nil || resp.StatusCode != http.StatusOK {
-		logger.GetLogger().Debug("Backend is not healthy: ", url)
+		logger.GetLogger().Debug("Backend is not healthy: ", backend.GetURL())
 		return false
 	}
 
-	logger.GetLogger().Debug("Backend is healthy: ", url)
+	logger.GetLogger().Debug("Backend is healthy: ", backend.GetURL())
 	return true
 }
 

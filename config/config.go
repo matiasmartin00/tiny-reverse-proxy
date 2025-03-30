@@ -28,6 +28,7 @@ type Config interface {
 type Backend interface {
 	GetURL() string
 	GetHealthPath() string
+	GetHealthTimeout() time.Duration
 	GetWeight() int
 }
 
@@ -43,10 +44,15 @@ type logging struct {
 	Level string `yaml:"level"`
 }
 
+type backendHealth struct {
+	Path   string        `yaml:"path"`
+	Timout time.Duration `yaml:"timeout"`
+}
+
 type backend struct {
-	URL        string `yaml:"url"`
-	HealthPath string `yaml:"health-path"`
-	Weight     int    `yaml:"weight"`
+	URL    string        `yaml:"url"`
+	Health backendHealth `yaml:"health"`
+	Weight int           `yaml:"weight"`
 }
 
 func (b *backend) GetURL() string {
@@ -54,7 +60,11 @@ func (b *backend) GetURL() string {
 }
 
 func (b *backend) GetHealthPath() string {
-	return b.HealthPath
+	return b.Health.Path
+}
+
+func (b *backend) GetHealthTimeout() time.Duration {
+	return b.Health.Timout
 }
 
 func (b *backend) GetWeight() int {
