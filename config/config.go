@@ -16,6 +16,11 @@ type Config interface {
 	GetBackendsForPath(path string) ([]Backend, error)
 	GetLoggingLevel() string
 	GetLoadBalancerStrategy() string
+	GetServerPort() int
+	GetServerReadTimeout() time.Duration
+	GetServerWriteTimeout() time.Duration
+	GetServerIdleTimeout() time.Duration
+	GetServerMaxHeaderBytes() int
 	loadConfig()
 	watchConfig()
 }
@@ -24,6 +29,14 @@ type Backend interface {
 	GetURL() string
 	GetHealthPath() string
 	GetWeight() int
+}
+
+type server struct {
+	Port           int           `yaml:"port"`
+	ReadTimeout    time.Duration `yaml:"read-timeout"`
+	WriteTimeout   time.Duration `yaml:"write-timeout"`
+	IdleTimeout    time.Duration `yaml:"idle-timeout"`
+	MaxHeaderBytes int           `yaml:"max-header-bytes"`
 }
 
 type logging struct {
@@ -56,6 +69,7 @@ type configurationFile struct {
 	Logging logging              `yaml:"logging"`
 	Routes  map[string][]backend `yaml:"routes"`
 	LB      loadBalancer         `yaml:"loadbalancer"`
+	Server  server               `yaml:"server"`
 }
 
 type configuration struct {
@@ -95,6 +109,26 @@ func (c *configuration) GetBackendsForPath(path string) ([]Backend, error) {
 	}
 
 	return nil, fmt.Errorf("no backends found for path: %s", path)
+}
+
+func (c *configuration) GetServerPort() int {
+	return c.cf.Server.Port
+}
+
+func (c *configuration) GetServerReadTimeout() time.Duration {
+	return c.cf.Server.ReadTimeout
+}
+
+func (c *configuration) GetServerWriteTimeout() time.Duration {
+	return c.cf.Server.WriteTimeout
+}
+
+func (c *configuration) GetServerIdleTimeout() time.Duration {
+	return c.cf.Server.IdleTimeout
+}
+
+func (c *configuration) GetServerMaxHeaderBytes() int {
+	return c.cf.Server.MaxHeaderBytes
 }
 
 func (c *configuration) loadConfig() {

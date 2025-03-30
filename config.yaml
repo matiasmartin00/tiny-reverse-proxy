@@ -1,6 +1,13 @@
 logging:
   level: "DEBUG"
 
+server:
+  port: 8080
+  read-timeout: 10s
+  write-timeout: 10s
+  idle-timeout: 15s
+  max-header-bytes: 1048576 # 1MB
+
 routes:
   "/api/v1/users":
     - url: "http://localhost:5001"

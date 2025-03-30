@@ -15,6 +15,6 @@ func main() {
 	verifier := healthcheck.NewVerifier(config)
 	lb := loadbalancer.NewLoadBalancer(config, verifier)
 	proxy := proxy.NewReverseProxy(lb)
-	server := server.NewServer(proxy)
+	server := server.NewServer(config, proxy)
 	server.StartServer()
 }
