@@ -42,14 +42,14 @@ func verifyBackends() {
 	logger.Debug("Verifying backends")
 
 	var wg sync.WaitGroup
-	results := make(chan backendHealthy, len(config.Backends))
+	results := make(chan backendHealthy, len(config.GetConfig().GetAllBackends()))
 
-	for _, backend := range config.Backends {
+	for _, backend := range config.GetConfig().GetAllBackends() {
 		wg.Add(1)
 		go func(url string, healthPath string) {
 			defer wg.Done()
 			results <- backendHealthy{url, isBackendHealthy(url, healthPath)}
-		}(backend.URL, backend.HealthPath)
+		}(backend.GetURL(), backend.GetHealthPath())
 	}
 
 	go func() {

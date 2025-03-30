@@ -8,15 +8,20 @@ import (
 )
 
 func GetNextBackend(r *http.Request) string {
-	logger.Debug("Load Balancer Strategy: ", config.Config.LB.Strategy)
-	backends := config.GetBackendsForPath(r.URL.Path)
+	logger.Debug("Load Balancer Strategy: ", config.GetConfig().GetLoadBalancerStrategy())
+	backends, err := config.GetConfig().GetBackendsForPath(r.URL.Path)
+
+	if err != nil {
+		logger.Error("Error getting backends for path: ", r.URL.Path, " - ", err)
+		return ""
+	}
 
 	if len(backends) == 0 {
 		logger.Error("No backends available for path: ", r.URL.Path)
 		return ""
 	}
 
-	switch config.Config.LB.Strategy {
+	switch config.GetConfig().GetLoadBalancerStrategy() {
 	case "round_robin":
 		return getNextRoundRobinBackend(backends)
 	case "weighted":

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"sync"
@@ -10,33 +11,93 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-var Config Configuration
+type Config interface {
+	GetAllBackends() []Backend
+	GetBackendsForPath(path string) ([]Backend, error)
+	GetLoggingLevel() string
+	GetLoadBalancerStrategy() string
+	loadConfig()
+	watchConfig()
+}
 
-type Logging struct {
+type Backend interface {
+	GetURL() string
+	GetHealthPath() string
+	GetWeight() int
+}
+
+type logging struct {
 	Level string `yaml:"level"`
 }
 
-type Backend struct {
+type backend struct {
 	URL        string `yaml:"url"`
 	HealthPath string `yaml:"health-path"`
 	Weight     int    `yaml:"weight"`
 }
 
-type LoadBalancer struct {
+func (b *backend) GetURL() string {
+	return b.URL
+}
+
+func (b *backend) GetHealthPath() string {
+	return b.HealthPath
+}
+
+func (b *backend) GetWeight() int {
+	return b.Weight
+}
+
+type loadBalancer struct {
 	Strategy string `yaml:"strategy"`
 }
 
-type Configuration struct {
-	Logging Logging              `yaml:"logging"`
-	Routes  map[string][]Backend `yaml:"routes"`
-	LB      LoadBalancer         `yaml:"loadbalancer"`
+type configurationFile struct {
+	Logging logging              `yaml:"logging"`
+	Routes  map[string][]backend `yaml:"routes"`
+	LB      loadBalancer         `yaml:"loadbalancer"`
 }
 
-var mutex = &sync.Mutex{}
+type configuration struct {
+	file     string
+	cf       configurationFile
+	mutex    *sync.Mutex
+	backends []Backend
+}
 
-var Backends = []Backend{}
+var instance Config
+var once sync.Once
 
-func LoadConfig() {
+func (c *configuration) GetAllBackends() []Backend {
+	return c.backends
+}
+
+func (c *configuration) GetLoggingLevel() string {
+	return c.cf.Logging.Level
+}
+
+func (c *configuration) GetLoadBalancerStrategy() string {
+	return c.cf.LB.Strategy
+}
+
+func (c *configuration) GetBackendsForPath(path string) ([]Backend, error) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	for route, backends := range c.cf.Routes {
+		if len(path) >= len(route) && path[:len(route)] == route {
+			var result []Backend
+			for i := range backends {
+				result = append(result, &backends[i])
+			}
+			return result, nil
+		}
+	}
+
+	return nil, fmt.Errorf("no backends found for path: %s", path)
+}
+
+func (c *configuration) loadConfig() {
 	// Load configuration from file
 	log.Println("Loading configuration")
 
@@ -48,28 +109,30 @@ func LoadConfig() {
 
 	defer file.Close()
 
-	mutex.Lock()
-	defer mutex.Unlock()
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 
 	decoder := yaml.NewDecoder(file)
-	Config = Configuration{}
+	c.cf = configurationFile{}
 
-	err = decoder.Decode(&Config)
+	err = decoder.Decode(&c.cf)
 	if err != nil {
 		log.Fatalf("Error decoding configuration file: %v", err)
 	}
 
-	loadBackends()
+	c.loadBackends()
 	log.Println("Configuration loaded")
 }
 
-func loadBackends() {
-	for _, backends := range Config.Routes {
-		Backends = append(Backends, backends...)
+func (c *configuration) loadBackends() {
+	for _, backends := range c.cf.Routes {
+		for i := range backends {
+			c.backends = append(c.backends, &backends[i])
+		}
 	}
 }
 
-func WatchConfig() {
+func (c *configuration) watchConfig() {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		log.Fatalf("Error creating watcher: %v", err)
@@ -92,7 +155,7 @@ func WatchConfig() {
 			if event.Op&(fsnotify.Write|fsnotify.Create) != 0 {
 				log.Println("Configuration file modified")
 				time.Sleep(1 * time.Second) // Wait for the file to be written
-				LoadConfig()
+				c.loadConfig()
 			}
 		case err, ok := <-watcher.Errors:
 			if !ok {
@@ -103,15 +166,14 @@ func WatchConfig() {
 	}
 }
 
-func GetBackendsForPath(path string) []Backend {
-	mutex.Lock()
-	defer mutex.Unlock()
-
-	for route, backends := range Config.Routes {
-		if len(path) >= len(route) && path[:len(route)] == route {
-			return backends
+func GetConfig() Config {
+	once.Do(func() {
+		instance = &configuration{
+			file:     "config.yaml",
+			mutex:    &sync.Mutex{},
 		}
-	}
-
-	return []Backend{}
+		instance.loadConfig()
+		go instance.watchConfig()
+	})
+	return instance
 }

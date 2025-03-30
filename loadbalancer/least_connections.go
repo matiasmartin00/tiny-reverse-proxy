@@ -22,17 +22,17 @@ func getLeastConnectionsBackend(backends []config.Backend) string {
 	var minConnectionsBackend string
 
 	for _, backend := range backends {
-		if healthcheck.IsNotBackendHealthy(backend.URL) {
+		if healthcheck.IsNotBackendHealthy(backend.GetURL()) {
 			continue
 		}
 
-		if _, ok := backendConnections[backend.URL]; !ok {
-			backendConnections[backend.URL] = 0
+		if _, ok := backendConnections[backend.GetURL()]; !ok {
+			backendConnections[backend.GetURL()] = 0
 		}
 
-		if backendConnections[backend.URL] < minConnections {
-			minConnections = backendConnections[backend.URL]
-			minConnectionsBackend = backend.URL
+		if backendConnections[backend.GetURL()] < minConnections {
+			minConnections = backendConnections[backend.GetURL()]
+			minConnectionsBackend = backend.GetURL()
 		}
 	}
 

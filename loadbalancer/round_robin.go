@@ -14,10 +14,10 @@ func getNextRoundRobinBackend(backends []config.Backend) string {
 	activeServers := make([]string, 0, len(backends))
 
 	for _, backend := range backends {
-		if healthcheck.IsNotBackendHealthy(backend.URL) {
+		if healthcheck.IsNotBackendHealthy(backend.GetURL()) {
 			continue
 		}
-		activeServers = append(activeServers, backend.URL)
+		activeServers = append(activeServers, backend.GetURL())
 	}
 
 	if len(activeServers) == 0 {
@@ -34,12 +34,12 @@ func getWeightedBackend(backends []config.Backend) string {
 	weightedList := []string{}
 
 	for _, backend := range backends {
-		if healthcheck.IsNotBackendHealthy(backend.URL) {
+		if healthcheck.IsNotBackendHealthy(backend.GetURL()) {
 			continue
 		}
 
-		for i := 0; i < backend.Weight; i++ {
-			weightedList = append(weightedList, backend.URL)
+		for i := 0; i < backend.GetWeight(); i++ {
+			weightedList = append(weightedList, backend.GetURL())
 		}
 	}
 

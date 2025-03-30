@@ -35,7 +35,7 @@ func Warn(args ...interface{}) {
 }
 
 func SetLogLevel() {
-	switch config.Config.Logging.Level {
+	switch config.GetConfig().GetLoggingLevel() {
 	case "INFO":
 		log.SetLevel(logrus.InfoLevel)
 	case "DEBUG":

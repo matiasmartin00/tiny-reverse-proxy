@@ -13,10 +13,10 @@ func getIPHashBackend(clientIP string, backends []config.Backend) string {
 	activeServers := []string{}
 
 	for _, backend := range backends {
-		if healthcheck.IsNotBackendHealthy(backend.URL) {
+		if healthcheck.IsNotBackendHealthy(backend.GetURL()) {
 			continue
 		}
-		activeServers = append(activeServers, backend.URL)
+		activeServers = append(activeServers, backend.GetURL())
 	}
 
 	if len(activeServers) == 0 {
