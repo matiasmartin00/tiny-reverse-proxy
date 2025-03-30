@@ -9,8 +9,16 @@ import (
 	"github.com/matiasmartin00/tiny-reverse-proxy/logger"
 )
 
-func ReverseProxyHandler(w http.ResponseWriter, r *http.Request) {
-	target := loadbalancer.GetLoadBalancer().GetNextBackend(r)
+type ReverseProxy interface {
+	ReverseProxyHandler(w http.ResponseWriter, r *http.Request)
+}
+
+type reverseProxyImpl struct {
+	lb loadbalancer.LoadBalancer
+}
+
+func (rp *reverseProxyImpl) ReverseProxyHandler(w http.ResponseWriter, r *http.Request) {
+	target := rp.lb.GetNextBackend(r)
 
 	if target == "" {
 		logger.GetLogger().Error("Not available backends")
@@ -20,8 +28,8 @@ func ReverseProxyHandler(w http.ResponseWriter, r *http.Request) {
 
 	logger.GetLogger().Debug("Proxying request to: ", target)
 
-	loadbalancer.GetLoadBalancer().IncrementConnection(target)
-	defer loadbalancer.GetLoadBalancer().DecrementConnection(target)
+	rp.lb.IncrementConnection(target)
+	defer rp.lb.DecrementConnection(target)
 
 	targetURL, err := url.Parse(target)
 	if err != nil {
@@ -34,4 +42,10 @@ func ReverseProxyHandler(w http.ResponseWriter, r *http.Request) {
 	proxy.ServeHTTP(w, r)
 
 	logger.GetLogger().Debug("Request proxied successfully. Target: ", target)
+}
+
+func NewReverseProxy(lb loadbalancer.LoadBalancer) ReverseProxy {
+	return &reverseProxyImpl{
+		lb: lb,
+	}
 }
