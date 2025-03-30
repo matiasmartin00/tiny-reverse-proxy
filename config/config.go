@@ -101,7 +101,7 @@ func (c *configuration) loadConfig() {
 	// Load configuration from file
 	log.Println("Loading configuration")
 
-	file, err := os.Open("config.yaml")
+	file, err := os.Open(c.file)
 
 	if err != nil {
 		log.Fatalf("Error opening configuration file: %v", err)
@@ -140,7 +140,7 @@ func (c *configuration) watchConfig() {
 
 	defer watcher.Close()
 
-	err = watcher.Add("config.yaml")
+	err = watcher.Add(c.file)
 	if err != nil {
 		log.Fatalf("Error adding watcher: %v", err)
 	}
