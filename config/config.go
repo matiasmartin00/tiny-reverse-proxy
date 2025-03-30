@@ -125,6 +125,7 @@ func (c *configuration) loadConfig() {
 }
 
 func (c *configuration) loadBackends() {
+	c.backends = []Backend{}
 	for _, backends := range c.cf.Routes {
 		for i := range backends {
 			c.backends = append(c.backends, &backends[i])
